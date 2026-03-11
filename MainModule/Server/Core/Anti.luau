@@ -165,7 +165,7 @@ return function(Vargs, GetEnv)
 						end)
 
 						Anti.RemovePlayer(player, info)
-					elseif string.lower(action) ~= "log" then
+					elseif string.lower(action) ~= "log" and string.lower(action) ~= "info" then
 						-- fake log (thonk?)
 						Anti.Detected(player, "Kick", "Spoofed log")
 						return;

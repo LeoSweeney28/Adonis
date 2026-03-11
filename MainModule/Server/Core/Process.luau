@@ -399,7 +399,7 @@ return function(Vargs, GetEnv)
 								else
 									Anti.Detected(p, "Kick", "Invalid Remote Data (r10004)")
 								end
-							elseif rateLimitCheck and RateLimit(p, "RateLog") then
+							elseif not rateLimitCheck and RateLimit(p, "RateLog") then
 								Anti.Detected(p, "Log", string.format("Firing RemoteEvent too quickly (>Rate: %s/sec)", curRemoteRate))
 								warn(string.format("%s is firing Adonis's RemoteEvent too quickly (>Rate: %s/sec)", p.Name, curRemoteRate))
 							end
