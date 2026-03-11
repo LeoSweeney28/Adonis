@@ -616,7 +616,8 @@ return function(Vargs, GetEnv)
 							end;
 						})
 
-						if not Remote.RemoteExecutionConfirmed[tostring(p.UserId)] then
+						local confirmedTime = Remote.RemoteExecutionConfirmed[tostring(p.UserId)]
+						if not confirmedTime or os.time() - confirmedTime > 300 then
 							local ans = Remote.GetGui(p, "YesNoPrompt", {
 								Icon = server.MatIcons.Warning;
 								Question = "Are you sure you want to load this script into the server env?";
@@ -625,7 +626,7 @@ return function(Vargs, GetEnv)
 							})
 
 							if ans == "Yes" then
-								Remote.RemoteExecutionConfirmed[tostring(p.UserId)] = true
+								Remote.RemoteExecutionConfirmed[tostring(p.UserId)] = os.time()
 							else
 								return
 							end
@@ -838,7 +839,7 @@ return function(Vargs, GetEnv)
 					local setting = args[1]
 					local value = args[2]
 
-					if type(setting) == "string" then
+					if type(setting) == "string" and not Remote.BlockedSettings[setting] then -- BlockedSettings: sensitive keys (DataStore, API keys, etc.) that cannot be changed in-game
 						if setting == "Prefix" or setting == "AnyPrefix" or setting == "SpecialPrefix" then
 							local orig = Settings[setting]
 							for _, v in Commands do
@@ -919,7 +920,7 @@ return function(Vargs, GetEnv)
 			end;
 
 			Test = function(p: Player,args: {[number]: any})
-				print(`OK WE GOT COMMUNICATION! FROM: {p.Name} ORGL: {args[1]}`)
+				-- Connection test; no action needed
 			end;
 
 			ProcessCommand = function(p: Player, args: {[number]: any})
@@ -947,6 +948,10 @@ return function(Vargs, GetEnv)
 					if target then
 						Variables.PMtickets[args[1]] = nil;
 					else
+						if typeof(args[2]) ~= "Instance" or not args[2]:IsA("Player") then
+							Anti.Detected(p, "Log", "Invalid PrivateMessage target")
+							return
+						end
 						target = args[2]
 					end
 
@@ -1172,25 +1177,20 @@ return function(Vargs, GetEnv)
 				local returns, finished
 				local key = service.HttpService:GenerateGUID(false)
 				local Yield = service.Signal.new();
-				local event = service.Events[key]:Connect(function(...) print("WE ARE GETTING A RETURN!") finished = true returns = {...} Yield:Fire() end)
+				local event = service.Events[key]:Connect(function(...) finished = true returns = {...} Yield:Fire() end)
 
 				Remote.PendingReturns[key] = true
 				Remote.Send(p, "GetReturn", com, key, ...)
 
-				print("GETTING RETURN")
 				if not finished and not returns and p.Parent then
 					local pEvent = service.Players.PlayerRemoving:Connect(function(plr) if plr == p then event:Fire() end end)
 					task.delay(600, function() if not finished then event:Fire() end end)
-					print(string.format("WAITING FOR RETURN %s", tostring(returns)))
 					Yield:Wait()
 					Yield:Destroy()
 
-					print(string.format("WE GOT IT! %s", tostring(returns)))
 					pEvent:Disconnect()
 					pEvent = nil
 				end
-
-				print("GOT RETURN")
 				event:Disconnect()
 				event = nil
 
